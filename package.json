@@ -13,12 +13,7 @@
     "format": "prettier --write ./src/ ./test/",
     "format-check": "prettier --write ./src/ ./test/",
     "lint": "eslint",
-    "prepare": "npm run build",
-    "prepublishOnly": "npm test && npm run lint",
-    "preversion": "npm run lint",
-    "version": "npm run format && git add -A src",
-    "postversion": "git push && git push --tags",
-    "postinstall": "npm run build"
+    "prepare": "npm run build"
   },
   "author": "Ruben Hakopian <ruben.hakopian@gmail.com>",
   "license": "Propriatery",
