@@ -38,6 +38,7 @@ enum ReportActions {
     VersionCheck = 'version-check',
     ReportError = 'report-error',
     ReportCounters = 'report-counters',
+    ReportMetrics = 'report-metrics',
 }
 
 export class WorldviousClient
@@ -86,6 +87,12 @@ export class WorldviousClient
             shouldStartImmediately: false
         }
 
+        this.jobConfigs[ReportActions.ReportMetrics] = {
+            delaySeconds: 60 * 60,
+            enabled: true,
+            overrideEnvName: 'WORLDVIOUS_METRICS_REPORT_TIMEOUT',
+            shouldStartImmediately: false
+        }
         this.id = process.env.WORLDVIOUS_ID;
 
         if (this.enabled) {
@@ -180,6 +187,10 @@ export class WorldviousClient
         this._register(ReportActions.ReportCounters, () => {
             return this._reportCounters();
         });
+
+        this._register(ReportActions.ReportMetrics, () => {
+            return this._reportMetrics();
+        });
     }
 
 
@@ -194,8 +205,14 @@ export class WorldviousClient
     {
         const data = this._makeNewData();
         data.counters = this.counters;
-        data.metrics = this.metrics;
         return this._request('report/counters', data);
+    }
+
+    private _reportMetrics()
+    {
+        const data = this._makeNewData();
+        data.metrics = this.metrics;
+        return this._request('report/metrics', data);
     }
 
     private _reportError()

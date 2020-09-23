@@ -79,6 +79,13 @@ describe('worldvious', () => {
             res.json({
             });
         });
+
+        app.post('/api/v1/oss/report/metrics', (req: any, res: any, next: any) => {
+            serverLogger.info("REPORT METRICS, body: ", req.body );
+            registerRequest('report-metrics', req.body);
+            res.json({
+            });
+        });
         
         SERVER_DATA.responses = {};
          
@@ -263,7 +270,7 @@ describe('worldvious', () => {
     .timeout(20 * 1000);
 
 
-    it('report_metrics', () => {
+    it('report_counters', () => {
         process.env.WORLDVIOUS_COUNTERS_REPORT_TIMEOUT = '2';
         client = new WorldviousClient(logger, "parser", 'v7.8.9');
         return Promise.resolve()
@@ -271,9 +278,6 @@ describe('worldvious', () => {
             .then(() => {
                 client.acceptCounters({
                     foo1: 'bar1'
-                });
-                client.acceptMetrics({
-                    foo2: 'bar2'
                 });
             })
             .then(() => Promise.timeout(6500))
@@ -285,9 +289,6 @@ describe('worldvious', () => {
                 should(requestBody.counters).be.eql({
                     foo1: 'bar1'
                 });
-                should(requestBody.metrics).be.eql({
-                    foo2: 'bar2'
-                });
 
             })
             .then(() => {
@@ -297,10 +298,39 @@ describe('worldvious', () => {
     .timeout(10 * 1000);
 
 
+    it('report_metrics', () => {
+        process.env.WORLDVIOUS_METRICS_REPORT_TIMEOUT = '2';
+        client = new WorldviousClient(logger, "parser", 'v7.8.9');
+        return Promise.resolve()
+            .then(() => client.init())
+            .then(() => {
+                client.acceptMetrics({
+                    foo2: 'bar2'
+                });
+            })
+            .then(() => Promise.timeout(6500))
+            .then(() => {
+                logger.info("Test end.");
+                should(SERVER_DATA.responseCounter['report-metrics']).be.equal(3);
+
+                const requestBody = SERVER_DATA.responses['report-metrics'];
+                should(requestBody.metrics).be.eql({
+                    foo2: 'bar2'
+                });
+
+            })
+            .then(() => {
+                delete process.env.WORLDVIOUS_METRICS_REPORT_TIMEOUT;
+            })
+    })
+    .timeout(10 * 1000);
+
+
     it('disabled_reporting_no_url', () => {
         process.env.WORLDVIOUS_VERSION_CHECK_TIMEOUT = '1';
         process.env.WORLDVIOUS_COUNTERS_REPORT_TIMEOUT = '1';
         process.env.WORLDVIOUS_ERROR_REPORT_TIMEOUT = '1';
+        process.env.WORLDVIOUS_METRICS_REPORT_TIMEOUT = '1';
         delete process.env.WORLDVIOUS_URL;
 
         client = new WorldviousClient(logger, "parser", 'v7.8.9');
