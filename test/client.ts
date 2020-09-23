@@ -1,6 +1,7 @@
 import 'mocha';
 import should = require('should');
 
+import _ from 'the-lodash';
 import { Promise } from 'the-promise';
 import { setupLogger, LoggerOptions } from 'the-logger';
 const loggerOptions = new LoggerOptions().enableFile(false).pretty(true);
@@ -11,8 +12,7 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 const TEST_SERVER_PORT=4444
-process.env.WORLDVIOUS_URL=`http://localhost:${TEST_SERVER_PORT}/api/v1/oss`
-process.env.WORLDVIOUS_ID='123e4567-e89b-12d3-a456-426614174000'
+
 
 interface ServerMockData {
     responses: Record<string, any>;
@@ -43,6 +43,12 @@ let client: WorldviousClient;
 describe('worldvious', () => {
 
     beforeEach(() => {
+        process.env.WORLDVIOUS_URL=`http://localhost:${TEST_SERVER_PORT}/api/v1/oss`
+        process.env.WORLDVIOUS_ID='123e4567-e89b-12d3-a456-426614174000'
+        delete process.env.WORLDVIOUS_VERSION_CHECK_TIMEOUT;
+        delete process.env.WORLDVIOUS_COUNTERS_REPORT_TIMEOUT;
+        delete process.env.WORLDVIOUS_ERROR_REPORT_TIMEOUT;
+
         var express = require("express");
         var bodyParser = require('body-parser');
         var app = express();
@@ -142,9 +148,6 @@ describe('worldvious', () => {
             .then(() => {
                 logger.info("Test end.");
                 should(SERVER_DATA.responseCounter['report-version']).be.equal(6);
-            })
-            .then(() => {
-                delete process.env.WORLDVIOUS_VERSION_CHECK_TIMEOUT;
             })
     })
     .timeout(10 * 1000);
@@ -256,9 +259,6 @@ describe('worldvious', () => {
                 should(response.count).be.equal(4);
                 should((<string>response.error).includes("One More Error"))
             })
-            .then(() => {
-                delete process.env.WORLDVIOUS_ERROR_REPORT_TIMEOUT;
-            })
     })
     .timeout(20 * 1000);
 
@@ -296,4 +296,37 @@ describe('worldvious', () => {
     })
     .timeout(10 * 1000);
 
+
+    it('disabled_reporting_no_url', () => {
+        process.env.WORLDVIOUS_VERSION_CHECK_TIMEOUT = '1';
+        process.env.WORLDVIOUS_COUNTERS_REPORT_TIMEOUT = '1';
+        process.env.WORLDVIOUS_ERROR_REPORT_TIMEOUT = '1';
+        delete process.env.WORLDVIOUS_URL;
+
+        client = new WorldviousClient(logger, "parser", 'v7.8.9');
+        return Promise.resolve()
+            .then(() => client.init())
+            .then(() => {
+                client.acceptCounters({
+                    foo1: 'bar1'
+                });
+                client.acceptMetrics({
+                    foo2: 'bar2'
+                });
+                try
+                {
+                    throw new Error("some Error")
+                }
+                catch(reason)
+                {
+                    client.acceptError(reason);
+                }
+            })
+            .then(() => Promise.timeout(3000))
+            .then(() => {
+                logger.info("Test end.");
+                should(_.keys(SERVER_DATA.responseCounter).length).be.equal(0);
+            })
+    })
+    .timeout(10 * 1000);
 });

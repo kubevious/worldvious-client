@@ -15,6 +15,14 @@ interface JobInfo
     preScheduleCb?: (...args: any[]) => void;
 }
 
+interface JobConfig 
+{
+    enabled: boolean
+    delaySeconds: number
+    overrideEnvName: string
+    shouldStartImmediately: boolean
+}
+
 interface JobRuntime 
 {
     isRunning: boolean
@@ -42,6 +50,7 @@ export class WorldviousClient
     private closed = false;
     private isFirstErrorReported = false;
 
+    private jobConfigs : Record<string, JobConfig> = {};
     private timers : Record<string, NodeJS.Timeout> = {};
     private jobs : Record<string, JobInfo> = {};
     private jobRuntime : Record<string, JobRuntime> = {};
@@ -56,6 +65,28 @@ export class WorldviousClient
         this.name = name;
         this.version = version;
 
+
+        this.jobConfigs[ReportActions.VersionCheck] = {
+            delaySeconds: 60 * 60,
+            enabled: true,
+            overrideEnvName: 'WORLDVIOUS_VERSION_CHECK_TIMEOUT',
+            shouldStartImmediately: true
+        }
+
+        this.jobConfigs[ReportActions.ReportError] = {
+            delaySeconds: 1 * 60,
+            enabled: true,
+            overrideEnvName: 'WORLDVIOUS_ERROR_REPORT_TIMEOUT',
+            shouldStartImmediately: false
+        }
+
+        this.jobConfigs[ReportActions.ReportCounters] = {
+            delaySeconds: 60 * 60,
+            enabled: true,
+            overrideEnvName: 'WORLDVIOUS_COUNTERS_REPORT_TIMEOUT',
+            shouldStartImmediately: false
+        }
+
         this.id = process.env.WORLDVIOUS_ID;
         if (!this.id) {
             this.logger.warn("NO WORLDVIOUS_ID Not Set. Disabling.");
@@ -67,13 +98,24 @@ export class WorldviousClient
             this.enabled = false;
         }
 
+        if (!this.enabled) {
+            for(let config of _.values(this.jobConfigs))
+            {
+                config.enabled = false;
+            }
+        }
     }
 
     init() : Promise<any>
     {
         return Promise.resolve()
             .then(() => this._schedule())
-            .then(() => this._runJobNow(ReportActions.VersionCheck));
+            .then(() => {
+                return Promise.serial(_.keys(this.jobConfigs), name => {
+                    const config = this.jobConfigs[name];
+                    return this._runJob(name, config.shouldStartImmediately);
+                })
+            });
     }
 
     close()
@@ -122,24 +164,19 @@ export class WorldviousClient
 
     private _schedule()
     {
-        this._register(ReportActions.VersionCheck, 60 * 60, 'WORLDVIOUS_VERSION_CHECK_TIMEOUT', () => {
+        this._register(ReportActions.VersionCheck, () => {
             return this._checkVersion();
         });
 
-        this._register(ReportActions.ReportError, 1 * 60, 'WORLDVIOUS_ERROR_REPORT_TIMEOUT', () => {
+        this._register(ReportActions.ReportError, () => {
             return this._reportError();
         }, () => {
             this.isFirstErrorReported = false;
         });
 
-        this._register(ReportActions.ReportCounters, 60 * 60, 'WORLDVIOUS_COUNTERS_REPORT_TIMEOUT', () => {
+        this._register(ReportActions.ReportCounters, () => {
             return this._reportCounters();
         });
-
-        for(let name of _.keys(this.jobs))
-        {
-            this._runJob(name, false);
-        }
     }
 
 
@@ -196,6 +233,11 @@ export class WorldviousClient
 
     private _runJob(name : string, executeNow: boolean) : Promise<any> | null
     {
+        const config = this.jobConfigs[name];
+        if (!config.enabled) {
+            return Promise.resolve();
+        }
+
         const job = this.jobs[name];
         if (!job) {
             this.logger.error("Unknown job: %s.", name);
@@ -255,10 +297,13 @@ export class WorldviousClient
         }
     }
 
-    private _register(name: string, seconds: number, overrideEnvName: string, cb: (...args: any[]) => void, preScheduleCb?: (...args: any[]) => void)
+    private _register(name: string, cb: (...args: any[]) => void, preScheduleCb?: (...args: any[]) => void)
     {
-        if (overrideEnvName) {
-            const overrideValue = process.env[overrideEnvName];
+        const config = this.jobConfigs[name];
+
+        let seconds = config.delaySeconds;
+        if (config.overrideEnvName) {
+            const overrideValue = process.env[config.overrideEnvName];
             if (overrideValue)
             {
                 const parsed = Number.parseInt(overrideValue);
@@ -268,6 +313,7 @@ export class WorldviousClient
                 }
             }
         }
+
         this.logger.info("Registered %s. timeout: %ssec.", name, seconds);
         this.jobs[name] = {
             name: name,
