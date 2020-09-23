@@ -65,6 +65,14 @@ describe('worldvious', () => {
             res.json({
             });
         });
+
+
+        app.post('/api/v1/oss/report/counters', (req: any, res: any, next: any) => {
+            serverLogger.info("REPORT COUNTERS, body: ", req.body );
+            registerRequest('report-counters', req.body);
+            res.json({
+            });
+        });
         
         SERVER_DATA.responses = {};
          
@@ -97,6 +105,7 @@ describe('worldvious', () => {
         return Promise.resolve()
             .then(() => client.init())
     });
+
 
     it('check_version_1', () => {
         client = new WorldviousClient(logger, "kubevious", 'v1.2.3');
@@ -140,6 +149,7 @@ describe('worldvious', () => {
     })
     .timeout(10 * 1000);
 
+
     it('error_report_one', () => {
         client = new WorldviousClient(logger, "parser", 'v7.8.9');
         return Promise.resolve()
@@ -166,6 +176,7 @@ describe('worldvious', () => {
                 should(response.error).be.a.String();
             })
     });
+
 
     it('error_report_multiple', () => {
         process.env.WORLDVIOUS_ERROR_REPORT_TIMEOUT = '3';
@@ -245,13 +256,44 @@ describe('worldvious', () => {
                 should(response.count).be.equal(4);
                 should((<string>response.error).includes("One More Error"))
             })
+            .then(() => {
+                delete process.env.WORLDVIOUS_ERROR_REPORT_TIMEOUT;
+            })
     })
     .timeout(20 * 1000);
 
 
-    // it('schedule', () => {
-    //     const client = new WorldviousClient(logger, "kubevious", 'v1.2.3');
-    //     client.close();
-    // });
+    it('report_metrics', () => {
+        process.env.WORLDVIOUS_COUNTERS_REPORT_TIMEOUT = '2';
+        client = new WorldviousClient(logger, "parser", 'v7.8.9');
+        return Promise.resolve()
+            .then(() => client.init())
+            .then(() => {
+                client.acceptCounters({
+                    foo1: 'bar1'
+                });
+                client.acceptMetrics({
+                    foo2: 'bar2'
+                });
+            })
+            .then(() => Promise.timeout(6500))
+            .then(() => {
+                logger.info("Test end.");
+                should(SERVER_DATA.responseCounter['report-counters']).be.equal(3);
+
+                const requestBody = SERVER_DATA.responses['report-counters'];
+                should(requestBody.counters).be.eql({
+                    foo1: 'bar1'
+                });
+                should(requestBody.metrics).be.eql({
+                    foo2: 'bar2'
+                });
+
+            })
+            .then(() => {
+                delete process.env.WORLDVIOUS_COUNTERS_REPORT_TIMEOUT;
+            })
+    })
+    .timeout(10 * 1000);
 
 });

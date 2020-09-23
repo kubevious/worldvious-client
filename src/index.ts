@@ -29,7 +29,7 @@ interface ErrorInfo
 enum ReportActions {
     VersionCheck = 'version-check',
     ReportError = 'report-error',
-    ReportMetrics = 'report-metrics',
+    ReportCounters = 'report-counters',
 }
 
 export class WorldviousClient
@@ -89,8 +89,6 @@ export class WorldviousClient
 
     acceptError(error: any)
     {
-        this.logger.info("*** ACCEPT ERROR");
-
         const errorStr = this._getErrorString(error);
         if (this.errors[errorStr]) {
             this.errors[errorStr].count = this.errors[errorStr].count + 1;
@@ -100,12 +98,21 @@ export class WorldviousClient
                 count: 1
             };
         }
-        // this.logger.info("*** ACCEPT ERROR end:", this.errors);
 
         if (!this.isFirstErrorReported) {
             this.isFirstErrorReported = true;
             this._runJobNow(ReportActions.ReportError);
         }
+    }
+
+    acceptCounters(value: any)
+    {
+        this.counters = value;
+    }
+
+    acceptMetrics(value: any)
+    {
+        this.metrics = value;
     }
 
     private _runJobNow(name : string) : Promise<any> | null
@@ -124,6 +131,15 @@ export class WorldviousClient
         }, () => {
             this.isFirstErrorReported = false;
         });
+
+        this._register(ReportActions.ReportCounters, 60 * 60, 'WORLDVIOUS_COUNTERS_REPORT_TIMEOUT', () => {
+            return this._reportCounters();
+        });
+
+        for(let name of _.keys(this.jobs))
+        {
+            this._runJob(name, false);
+        }
     }
 
 
@@ -131,16 +147,20 @@ export class WorldviousClient
     {
         const data = this._makeNewData();
         data.version = this.version;
-        return this._request('report/version', data)
-            .then(result => {
-                this.logger.info("VersionCheckResult: ", result);
-            });
+        return this._request('report/version', data);
     }
 
+    private _reportCounters()
+    {
+        const data = this._makeNewData();
+        data.counters = this.counters;
+        data.metrics = this.metrics;
+        this.logger.info("****************** _reportCounters ", data);
+        return this._request('report/counters', data);
+    }
 
     private _reportError()
     {
-        this.logger.info("_reportError ", this.errors);
         if (_.keys(this.errors).length == 0) {
             return;
         }
@@ -159,9 +179,6 @@ export class WorldviousClient
 
         return Promise.serial(payloads, data => {
                 return this._request('report/error', data);
-            })
-            .then(result => {
-                this.logger.info("VersionCheckResult: ", result);
             });
     }
 
