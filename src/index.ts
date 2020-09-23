@@ -65,7 +65,6 @@ export class WorldviousClient
         this.name = name;
         this.version = version;
 
-
         this.jobConfigs[ReportActions.VersionCheck] = {
             delaySeconds: 60 * 60,
             enabled: true,
@@ -88,14 +87,18 @@ export class WorldviousClient
         }
 
         this.id = process.env.WORLDVIOUS_ID;
-        if (!this.id) {
-            this.logger.warn("NO WORLDVIOUS_ID Not Set. Disabling.");
-            this.enabled = false;
-        }
 
-        if (!process.env.WORLDVIOUS_URL) {
-            this.logger.warn("NO WORLDVIOUS_URL Set. Disabling.");
-            this.enabled = false;
+        if (this.enabled) {
+            if (!this.id) {
+                this.logger.warn("No WORLDVIOUS_ID Not Set. Disabling.");
+                this.enabled = false;
+            }
+        }
+        if (this.enabled) {
+            if (!process.env.WORLDVIOUS_URL) {
+                this.logger.warn("No WORLDVIOUS_URL Set. Disabling.");
+                this.enabled = false;
+            }
         }
 
         if (!this.enabled) {
@@ -300,6 +303,9 @@ export class WorldviousClient
     private _register(name: string, cb: (...args: any[]) => void, preScheduleCb?: (...args: any[]) => void)
     {
         const config = this.jobConfigs[name];
+        if (!config.enabled) {
+            return;
+        }
 
         let seconds = config.delaySeconds;
         if (config.overrideEnvName) {
