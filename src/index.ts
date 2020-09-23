@@ -195,7 +195,6 @@ export class WorldviousClient
         const data = this._makeNewData();
         data.counters = this.counters;
         data.metrics = this.metrics;
-        this.logger.info("****************** _reportCounters ", data);
         return this._request('report/counters', data);
     }
 
@@ -336,11 +335,11 @@ export class WorldviousClient
     {
         const fullUrl = `${process.env.WORLDVIOUS_URL}/${url}`;
 
-        this.logger.info("Requesting %s...", fullUrl, data);
+        this.logger.silly("Requesting %s...", fullUrl, data);
         return Promise.construct<AxiosResponse>((resolve, reject) => {
             axios.post(fullUrl, data)
                 .then(result => {
-                    this.logger.info("Done %s.", fullUrl, result.data);
+                    this.logger.silly("Done %s.", fullUrl, result.data);
                     resolve(result.data)
                 })
                 .catch(reason => {
