@@ -56,8 +56,8 @@ export class WorldviousClient
     private jobs : Record<string, JobInfo> = {};
     private jobRuntime : Record<string, JobRuntime> = {};
 
-    private counters = {};
-    private metrics = {};
+    private counters = [];
+    private metrics = [];
     private errors : Record<string, ErrorInfo> = {};
 
     constructor(logger : ILogger, name: string, version: string)
