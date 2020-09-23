@@ -260,7 +260,7 @@ export class WorldviousClient
                     this.logger.info("Completed %s", name);
                 })
                 .catch(reason => {
-                    this.logger.error("%s failed. reason: ",name, reason);
+                    this.logger.error("%s failed. reason: %s",name, reason.message);
                 })
                 .then(() => {
                     this.jobRuntime[name].isRunning = false;
@@ -344,7 +344,7 @@ export class WorldviousClient
                     resolve(result.data)
                 })
                 .catch(reason => {
-                    this.logger.error("Failed %s.", fullUrl, reason);
+                    this.logger.error("Failed %s. %s", fullUrl, reason.message);
                     reject(reason);
                 });
         })
