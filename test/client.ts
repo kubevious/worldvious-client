@@ -13,26 +13,27 @@ dotenv.config();
 
 const TEST_SERVER_PORT=4444
 
-
 interface ServerMockData {
-    responses: Record<string, any>;
-    responseCounter: Record<string, number>;
-    server?: any
+    requests: Record<string, any>;
+    requestCounter: Record<string, number>;
+    server?: any;
+    shouldRequestNewVersion: boolean;
 };
 
 const SERVER_DATA : ServerMockData = {
-    responses: {},
-    responseCounter: {},
-    server: null
+    requests: {},
+    requestCounter: {},
+    server: null,
+    shouldRequestNewVersion: false
 };
 
 function registerRequest(name: string, body: any)
 {
-    SERVER_DATA.responses[name] = body;
-    if (SERVER_DATA.responseCounter[name]) {
-        SERVER_DATA.responseCounter[name] = SERVER_DATA.responseCounter[name] + 1;
+    SERVER_DATA.requests[name] = body;
+    if (SERVER_DATA.requestCounter[name]) {
+        SERVER_DATA.requestCounter[name] = SERVER_DATA.requestCounter[name] + 1;
     } else {
-        SERVER_DATA.responseCounter[name] = 1;
+        SERVER_DATA.requestCounter[name] = 1;
     }
 }
 
@@ -58,11 +59,33 @@ describe('worldvious', () => {
         app.post('/api/v1/oss/report/version', (req: any, res: any, next: any) => {
             serverLogger.info("REPORT VERSION, body: ", req.body );
             registerRequest('report-version', req.body);
-            res.json({
-                "newVersionPresent": true,
-                "version": "v1.2.3",
-                "url": "https://github.com/kubevious/helm#installing-the-chart-using-helm-v3x"
-            });
+
+            let data;
+            if (SERVER_DATA.shouldRequestNewVersion)
+            {
+                data = {
+                    "newVersionPresent": true,
+                    "version": "v1.2.3",
+                    "url": "https://github.com/kubevious/kubevious",
+                    "changes": [
+                        "change-1",
+                        "change-2",
+                        "change-3",
+                    ],
+                    "features": [
+                        "feature-1",
+                        "feature-2",
+                        "feature-3",
+                    ]
+                };
+            }
+            else
+            {
+                data = {
+                    "newVersionPresent": false
+                };
+            }
+            res.json(data);
         });
 
         app.post('/api/v1/oss/report/error', (req: any, res: any, next: any) => {
@@ -87,7 +110,7 @@ describe('worldvious', () => {
             });
         });
         
-        SERVER_DATA.responses = {};
+        SERVER_DATA.requests = {};
          
         return Promise.construct((resolve, reject) => {
             SERVER_DATA.server = app.listen(TEST_SERVER_PORT, () => {
@@ -103,8 +126,8 @@ describe('worldvious', () => {
             client.close();
         }
         SERVER_DATA.server!.close();
-        SERVER_DATA.responses = {};
-        SERVER_DATA.responseCounter = {};
+        SERVER_DATA.requests = {};
+        SERVER_DATA.requestCounter = {};
         SERVER_DATA.server = null;
     });
 
@@ -121,28 +144,49 @@ describe('worldvious', () => {
 
 
     it('check_version_1', () => {
+        SERVER_DATA.shouldRequestNewVersion = true;
         client = new WorldviousClient(logger, "kubevious", 'v1.2.3');
+        let version : any;
+        client.onVersionChanged((x) => {
+            version = x;
+        })
         return Promise.resolve()
             .then(() => client.init())
             .then(() => {
-                should(SERVER_DATA.responses['report-version']).be.eql({
+                should(SERVER_DATA.requests['report-version']).be.eql({
                     id: "123e4567-e89b-12d3-a456-426614174000",
                     process: "kubevious",
                     version: "v1.2.3"
                 })
+
+                return Promise.timeout(100);
+            })
+            .then(() => {
+                should(version).be.ok();
+                should(version.newVersionPresent).be.true();
             })
     });
 
     it('check_version_2', () => {
+        SERVER_DATA.shouldRequestNewVersion = false;
         client = new WorldviousClient(logger, "parser", 'v7.8.9');
+        let version : any;
+        client.onVersionChanged((x) => {
+            version = x;
+        })
         return Promise.resolve()
             .then(() => client.init())
             .then(() => {
-                should(SERVER_DATA.responses['report-version']).be.eql({
+                should(SERVER_DATA.requests['report-version']).be.eql({
                     id: "123e4567-e89b-12d3-a456-426614174000",
                     process: "parser",
                     version: "v7.8.9"
                 })
+                return Promise.timeout(100);
+            })
+            .then(() => {
+                should(version).be.ok();
+                should(version.newVersionPresent).be.false();
             })
     });
 
@@ -154,7 +198,7 @@ describe('worldvious', () => {
             .then(() => Promise.timeout(5500))
             .then(() => {
                 logger.info("Test end.");
-                should(SERVER_DATA.responseCounter['report-version']).be.equal(6);
+                should(SERVER_DATA.requestCounter['report-version']).be.equal(6);
             })
     })
     .timeout(10 * 1000);
@@ -177,9 +221,9 @@ describe('worldvious', () => {
             })
             .then(() => Promise.timeout(100))
             .then(() => {
-                should(SERVER_DATA.responseCounter['report-error']).be.equal(1);
+                should(SERVER_DATA.requestCounter['report-error']).be.equal(1);
 
-                const response = SERVER_DATA.responses['report-error'];
+                const response = SERVER_DATA.requests['report-error'];
 
                 should(response.id).be.equal("123e4567-e89b-12d3-a456-426614174000");
                 should(response.process).be.equal("parser");
@@ -209,9 +253,9 @@ describe('worldvious', () => {
             })
             .then(() => Promise.timeout(100))
             .then(() => {
-                should(SERVER_DATA.responseCounter['report-error']).be.equal(1);
+                should(SERVER_DATA.requestCounter['report-error']).be.equal(1);
 
-                const response = SERVER_DATA.responses['report-error'];
+                const response = SERVER_DATA.requests['report-error'];
 
                 should(response.id).be.equal("123e4567-e89b-12d3-a456-426614174000");
                 should(response.process).be.equal("parser");
@@ -221,9 +265,9 @@ describe('worldvious', () => {
             })
             .then(() => Promise.timeout(3000))
             .then(() => {
-                should(SERVER_DATA.responseCounter['report-error']).be.equal(2);
+                should(SERVER_DATA.requestCounter['report-error']).be.equal(2);
 
-                const response = SERVER_DATA.responses['report-error'];
+                const response = SERVER_DATA.requests['report-error'];
 
                 should(response.id).be.equal("123e4567-e89b-12d3-a456-426614174000");
                 should(response.process).be.equal("parser");
@@ -247,18 +291,18 @@ describe('worldvious', () => {
             })
             .then(() => Promise.timeout(100))
             .then(() => {
-                should(SERVER_DATA.responseCounter['report-error']).be.equal(3);
+                should(SERVER_DATA.requestCounter['report-error']).be.equal(3);
 
-                const response = SERVER_DATA.responses['report-error'];
+                const response = SERVER_DATA.requests['report-error'];
 
                 should((<string>response.error).includes("One More Error"))
 
             })
             .then(() => Promise.timeout(3000))
             .then(() => {
-                should(SERVER_DATA.responseCounter['report-error']).be.equal(4);
+                should(SERVER_DATA.requestCounter['report-error']).be.equal(4);
 
-                const response = SERVER_DATA.responses['report-error'];
+                const response = SERVER_DATA.requests['report-error'];
 
                 should(response.id).be.equal("123e4567-e89b-12d3-a456-426614174000");
                 should(response.process).be.equal("parser");
@@ -283,9 +327,9 @@ describe('worldvious', () => {
             .then(() => Promise.timeout(6500))
             .then(() => {
                 logger.info("Test end.");
-                should(SERVER_DATA.responseCounter['report-counters']).be.equal(3);
+                should(SERVER_DATA.requestCounter['report-counters']).be.equal(3);
 
-                const requestBody = SERVER_DATA.responses['report-counters'];
+                const requestBody = SERVER_DATA.requests['report-counters'];
                 should(requestBody.counters).be.eql({
                     foo1: 'bar1'
                 });
@@ -311,9 +355,9 @@ describe('worldvious', () => {
             .then(() => Promise.timeout(6500))
             .then(() => {
                 logger.info("Test end.");
-                should(SERVER_DATA.responseCounter['report-metrics']).be.equal(3);
+                should(SERVER_DATA.requestCounter['report-metrics']).be.equal(3);
 
-                const requestBody = SERVER_DATA.responses['report-metrics'];
+                const requestBody = SERVER_DATA.requests['report-metrics'];
                 should(requestBody.metrics).be.eql({
                     foo2: 'bar2'
                 });
@@ -355,7 +399,7 @@ describe('worldvious', () => {
             .then(() => Promise.timeout(3000))
             .then(() => {
                 logger.info("Test end.");
-                should(_.keys(SERVER_DATA.responseCounter).length).be.equal(0);
+                should(_.keys(SERVER_DATA.requestCounter).length).be.equal(0);
             })
     })
     .timeout(10 * 1000);

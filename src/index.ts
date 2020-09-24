@@ -1,8 +1,7 @@
 import { ILogger } from 'the-logger';
-import { Promise } from 'the-promise';
+import { Promise, Resolvable } from 'the-promise';
 import _ from 'the-lodash';
 import axios from 'axios';
-import { AxiosResponse } from 'axios';
 
 import dotenv from 'dotenv';
 dotenv.config();
@@ -41,6 +40,17 @@ enum ReportActions {
     ReportMetrics = 'report-metrics',
 }
 
+export interface VersionInfo
+{
+    newVersionPresent: boolean;
+    version?: string;
+    changes?: string[];
+    features?: string[];
+    url?: string;
+}
+
+export type NewVersionCallback = (versionInfo: VersionInfo) => Resolvable<any>;
+
 export class WorldviousClient
 {
     private logger : ILogger;
@@ -59,6 +69,8 @@ export class WorldviousClient
     private counters = [];
     private metrics = [];
     private errors : Record<string, ErrorInfo> = {};
+    private _versionInfo: VersionInfo = { newVersionPresent: false };
+    private _versionChangeListeners : NewVersionCallback[] = [];
 
     constructor(logger : ILogger, name: string, version: string)
     {
@@ -116,6 +128,16 @@ export class WorldviousClient
         }
     }
 
+    get versionInfo() : VersionInfo {
+        return this._versionInfo;
+    }
+
+    onVersionChanged(cb : (versionInfo: VersionInfo) => Resolvable<any>)
+    {
+        this._versionChangeListeners.push(cb);
+        this._trigger(cb);
+    }
+
     init() : Promise<any>
     {
         return Promise.resolve()
@@ -167,6 +189,15 @@ export class WorldviousClient
         this.metrics = value;
     }
 
+    private _trigger(cb : (versionInfo: VersionInfo) => Resolvable<any>)
+    {
+        Promise.resolve()
+            .then(() => cb(this.versionInfo))
+            .catch(reason => {
+                this.logger.error("ERROR: ", reason);
+            })
+    }
+
     private _runJobNow(name : string) : Promise<any> | null
     {
         return this._runJob(name, true);
@@ -193,12 +224,29 @@ export class WorldviousClient
         });
     }
 
-
     private _checkVersion()
     {
         const data = this._makeNewData();
         data.version = this.version;
-        return this._request('report/version', data);
+        return this._request('report/version', data)
+            .then(result => {
+                const versionInfo = <VersionInfo> result;
+                this._activateNewVersionInfo(versionInfo);
+            });
+    }
+
+    private _activateNewVersionInfo(versionInfo : VersionInfo)
+    {
+        if (versionInfo.newVersionPresent) {
+            this.logger.info("New version (%s) is available. Available from: %s.",
+                versionInfo.version, versionInfo.url);
+        }
+
+        this._versionInfo = versionInfo;
+        for(let cb of this._versionChangeListeners)
+        {
+            this._trigger(cb);
+        }
     }
 
     private _reportCounters()
@@ -252,6 +300,10 @@ export class WorldviousClient
 
     private _runJob(name : string, executeNow: boolean) : Promise<any> | null
     {
+        if (this.closed) {
+            return null;
+        }
+
         const config = this.jobConfigs[name];
         if (!config.enabled) {
             return Promise.resolve();
@@ -348,12 +400,12 @@ export class WorldviousClient
         }
     }
 
-    private _request(url: string, data: Record<string, any>) : Promise<AxiosResponse>
+    private _request(url: string, data: Record<string, any>) : Promise<any>
     {
         const fullUrl = `${process.env.WORLDVIOUS_URL}/${url}`;
 
         this.logger.silly("Requesting %s...", fullUrl, data);
-        return Promise.construct<AxiosResponse>((resolve, reject) => {
+        return Promise.construct<any>((resolve, reject) => {
             axios.post(fullUrl, data)
                 .then(result => {
                     this.logger.silly("Done %s.", fullUrl, result.data);
