@@ -153,7 +153,7 @@ export class WorldviousClient
 
         if (!this.isFirstErrorReported) {
             this.isFirstErrorReported = true;
-            this._runJobNow(ReportActions.ReportError);
+            return this._runJobNow(ReportActions.ReportError);
         }
     }
 
