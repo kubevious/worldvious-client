@@ -1,7 +1,7 @@
 {
-  "name": "worldvious-client",
+  "name": "kubevious-worldvious-client",
   "version": "1.0.0",
-  "description": "kworldvious-client",
+  "description": "kubevious-worldvious-client",
   "main": "dist/index.js",
   "types": "dist",
   "files": [
