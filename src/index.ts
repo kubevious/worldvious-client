@@ -194,15 +194,8 @@ export class WorldviousClient
         try
         {
             const res = cb(this.versionInfo);
-            // const res = "123";
-
-            // const p = 
-            // Promise.construct((resolve, reject) => {
-            //     resolve(1235);
-            // })
             BasePromise.resolve(res)
-            .then(() => null)
-            .catch(reason => {
+                .catch(reason => {
                     this.logger.error("ERROR: ", reason);
                 })
                 .then(() => null);
@@ -248,7 +241,7 @@ export class WorldviousClient
     private _activateNewVersionInfo(versionInfo : VersionInfo)
     {
         if (versionInfo.newVersionPresent) {
-            this.logger.info("New version (%s) is available. Available from: %s.",
+            this.logger.info("New version (%s) is available. Download from: %s.",
                 versionInfo.version, versionInfo.url);
         }
 
