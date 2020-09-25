@@ -175,7 +175,7 @@ export class WorldviousClient
 
         if (!this.isFirstErrorReported) {
             this.isFirstErrorReported = true;
-            return this._runJobNow(ReportActions.ReportError);
+            return this._runJob(ReportActions.ReportError, true);
         }
     }
 
@@ -196,11 +196,7 @@ export class WorldviousClient
             .catch(reason => {
                 this.logger.error("ERROR: ", reason);
             })
-    }
-
-    private _runJobNow(name : string) : Promise<any> | null
-    {
-        return this._runJob(name, true);
+        return null;
     }
 
     private _schedule()
