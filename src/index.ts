@@ -161,7 +161,7 @@ export class WorldviousClient
         this.timers = {};
     }
 
-    acceptError(error: any)
+    acceptError(error: any) : Resolvable<any>
     {
         const errorStr = this._getErrorString(error);
         if (this.errors[errorStr]) {
@@ -350,6 +350,7 @@ export class WorldviousClient
                 const timer = setTimeout(() => {
                     delete this.timers[name];
                     handler();
+                    return null;
                 }, job.seconds * 1000);
                 this.timers[name] = timer;
             }
