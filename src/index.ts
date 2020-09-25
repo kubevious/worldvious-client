@@ -1,5 +1,5 @@
 import { ILogger } from 'the-logger';
-import { Promise, Resolvable } from 'the-promise';
+import { Promise, Resolvable, BasePromise } from 'the-promise';
 import _ from 'the-lodash';
 import axios from 'axios';
 
@@ -194,8 +194,15 @@ export class WorldviousClient
         try
         {
             const res = cb(this.versionInfo);
-            Promise.resolve(res)
-                .catch(reason => {
+            // const res = "123";
+
+            // const p = 
+            // Promise.construct((resolve, reject) => {
+            //     resolve(1235);
+            // })
+            BasePromise.resolve(res)
+            .then(() => null)
+            .catch(reason => {
                     this.logger.error("ERROR: ", reason);
                 })
                 .then(() => null);
