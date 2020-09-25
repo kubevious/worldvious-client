@@ -191,11 +191,18 @@ export class WorldviousClient
 
     private _trigger(cb : (versionInfo: VersionInfo) => Resolvable<any>)
     {
-        Promise.resolve()
-            .then(() => cb(this.versionInfo))
-            .catch(reason => {
+        try
+        {
+            const res = cb(this.versionInfo);
+            const prom = Promise.resolve(res);
+            prom.catch(reason => {
                 this.logger.error("ERROR: ", reason);
             })
+        }
+        catch(reason)
+        {
+            this.logger.error("ERROR: ", reason);
+        }
         return null;
     }
 
