@@ -194,16 +194,16 @@ export class WorldviousClient
         try
         {
             const res = cb(this.versionInfo);
-            const prom = Promise.resolve(res);
-            prom.catch(reason => {
-                this.logger.error("ERROR: ", reason);
-            })
+            Promise.resolve(res)
+                .catch(reason => {
+                    this.logger.error("ERROR: ", reason);
+                })
+                .then(() => null);
         }
         catch(reason)
         {
             this.logger.error("ERROR: ", reason);
         }
-        return null;
     }
 
     private _schedule()
