@@ -43,6 +43,7 @@ enum ReportActions {
 export interface VersionInfo
 {
     newVersionPresent: boolean;
+    name?: string;
     version?: string;
     changes?: string[];
     features?: string[];
@@ -241,8 +242,10 @@ export class WorldviousClient
     private _activateNewVersionInfo(versionInfo : VersionInfo)
     {
         if (versionInfo.newVersionPresent) {
-            this.logger.info("New version (%s) is available. Download from: %s.",
-                versionInfo.version, versionInfo.url);
+            this.logger.info("New version (%s %s) is available. Download from: %s.",
+                versionInfo.name,
+                versionInfo.version,
+                versionInfo.url);
         }
 
         this._versionInfo = versionInfo;

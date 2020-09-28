@@ -65,6 +65,7 @@ describe('worldvious', () => {
             {
                 data = {
                     "newVersionPresent": true,
+                    "name": "Kubevious",
                     "version": "v1.2.3",
                     "url": "https://github.com/kubevious/kubevious",
                     "changes": [
@@ -164,6 +165,11 @@ describe('worldvious', () => {
             .then(() => {
                 should(version).be.ok();
                 should(version.newVersionPresent).be.true();
+                should(version.name).be.equal("Kubevious");
+                should(version.version).be.equal("v1.2.3");
+                should(version.url).be.equal("https://github.com/kubevious/kubevious");
+                should(version.changes).be.an.Array();
+                should(version.features).be.an.Array();
             })
     });
 
