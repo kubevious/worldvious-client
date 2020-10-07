@@ -1,7 +1,7 @@
 {
-  "name": "kubevious-worldvious-client",
+  "name": "@kubevious/worldvious-client",
   "version": "1.0.0",
-  "description": "kubevious-worldvious-client",
+  "description": "Worldvious Client",
   "main": "dist/index.js",
   "types": "dist",
   "files": [
@@ -12,11 +12,10 @@
     "build": "tsc",
     "format": "prettier --write ./src/ ./test/",
     "format-check": "prettier --write ./src/ ./test/",
-    "lint": "eslint",
-    "prepare": "npm run build"
+    "lint": "eslint"
   },
   "author": "Ruben Hakopian <ruben.hakopian@gmail.com>",
-  "license": "Propriatery",
+  "license": "Apache-2.0",
   "dependencies": {
     "axios": "^0.20.0",
     "dotenv": "^8.2.0",
