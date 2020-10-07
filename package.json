@@ -1,6 +1,6 @@
 {
   "name": "@kubevious/worldvious-client",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Worldvious Client",
   "main": "dist/index.js",
   "types": "dist",
