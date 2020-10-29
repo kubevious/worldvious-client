@@ -48,7 +48,12 @@ describe('worldvious', () => {
         process.env.WORLDVIOUS_ID='123e4567-e89b-12d3-a456-426614174000'
         delete process.env.WORLDVIOUS_VERSION_CHECK_TIMEOUT;
         delete process.env.WORLDVIOUS_COUNTERS_REPORT_TIMEOUT;
+        delete process.env.WORLDVIOUS_METRICS_REPORT_TIMEOUT;
         delete process.env.WORLDVIOUS_ERROR_REPORT_TIMEOUT;
+        delete process.env.WORLDVIOUS_VERSION_CHECK_DISABLE;
+        delete process.env.WORLDVIOUS_ERROR_REPORT_DISABLE;
+        delete process.env.WORLDVIOUS_COUNTERS_REPORT_DISABLE;
+        delete process.env.WORLDVIOUS_METRICS_REPORT_DISABLE;
 
         var express = require("express");
         var bodyParser = require('body-parser');
@@ -395,7 +400,7 @@ describe('worldvious', () => {
                 });
                 try
                 {
-                    throw new Error("some Error")
+                    throw new Error("Some Error")
                 }
                 catch(reason)
                 {
@@ -405,8 +410,134 @@ describe('worldvious', () => {
             .then(() => Promise.timeout(3000))
             .then(() => {
                 logger.info("Test end.");
+                logger.info("SERVER_DATA: ", SERVER_DATA.requests);
+
                 should(_.keys(SERVER_DATA.requestCounter).length).be.equal(0);
             })
     })
     .timeout(10 * 1000);
+
+
+
+    it('disabled_counters_report', () => {
+        process.env.WORLDVIOUS_COUNTERS_REPORT_DISABLE = 'true';
+
+        process.env.WORLDVIOUS_VERSION_CHECK_TIMEOUT = '1';
+        process.env.WORLDVIOUS_COUNTERS_REPORT_TIMEOUT = '1';
+        process.env.WORLDVIOUS_ERROR_REPORT_TIMEOUT = '1';
+        process.env.WORLDVIOUS_METRICS_REPORT_TIMEOUT = '1';
+
+        client = new WorldviousClient(logger, "parser", 'v7.8.9');
+        return Promise.resolve()
+            .then(() => client.init())
+            .then(() => {
+                client.acceptCounters({
+                    foo1: 'bar1'
+                });
+                client.acceptMetrics({
+                    foo2: 'bar2'
+                });
+                try
+                {
+                    throw new Error("Some Error")
+                }
+                catch(reason)
+                {
+                    client.acceptError(reason);
+                }
+            })
+            .then(() => Promise.timeout(3 * 1000))
+            .then(() => {
+                logger.info("Test end.");
+                logger.info("SERVER_DATA: ", SERVER_DATA.requests);
+                should(SERVER_DATA.requests['report-version']).be.ok();
+                should(SERVER_DATA.requests['report-error']).be.ok();
+                should(SERVER_DATA.requests['report-metrics']).be.ok();
+                should(SERVER_DATA.requests['report-counters']).not.be.ok();
+            })
+    })
+    .timeout(10 * 1000);
+
+
+    it('disabled_metrics_report', () => {
+        process.env.WORLDVIOUS_METRICS_REPORT_DISABLE = 'true';
+
+        process.env.WORLDVIOUS_VERSION_CHECK_TIMEOUT = '1';
+        process.env.WORLDVIOUS_COUNTERS_REPORT_TIMEOUT = '1';
+        process.env.WORLDVIOUS_ERROR_REPORT_TIMEOUT = '1';
+        process.env.WORLDVIOUS_METRICS_REPORT_TIMEOUT = '1';
+
+        client = new WorldviousClient(logger, "parser", 'v7.8.9');
+        return Promise.resolve()
+            .then(() => client.init())
+            .then(() => {
+                client.acceptCounters({
+                    foo1: 'bar1'
+                });
+                client.acceptMetrics({
+                    foo2: 'bar2'
+                });
+                try
+                {
+                    throw new Error("Some Error")
+                }
+                catch(reason)
+                {
+                    client.acceptError(reason);
+                }
+            })
+            .then(() => Promise.timeout(3 * 1000))
+            .then(() => {
+                logger.info("Test end.");
+                logger.info("SERVER_DATA: ", SERVER_DATA.requests);
+
+                should(SERVER_DATA.requests['report-version']).be.ok();
+                should(SERVER_DATA.requests['report-error']).be.ok();
+                should(SERVER_DATA.requests['report-counters']).be.ok();
+                should(SERVER_DATA.requests['report-metrics']).not.be.ok();
+            })
+    })
+    .timeout(10 * 1000);
+
+
+    it('disabled_version_check_report', () => {
+        process.env.WORLDVIOUS_VERSION_CHECK_DISABLE = 'true';
+
+        process.env.WORLDVIOUS_VERSION_CHECK_TIMEOUT = '1';
+        process.env.WORLDVIOUS_COUNTERS_REPORT_TIMEOUT = '1';
+        process.env.WORLDVIOUS_ERROR_REPORT_TIMEOUT = '1';
+        process.env.WORLDVIOUS_METRICS_REPORT_TIMEOUT = '1';
+
+        client = new WorldviousClient(logger, "parser", 'v7.8.9');
+        return Promise.resolve()
+            .then(() => client.init())
+            .then(() => {
+                client.acceptCounters({
+                    foo1: 'bar1'
+                });
+                client.acceptMetrics({
+                    foo2: 'bar2'
+                });
+                try
+                {
+                    throw new Error("Some Error")
+                }
+                catch(reason)
+                {
+                    client.acceptError(reason);
+                }
+            })
+            .then(() => Promise.timeout(3 * 1000))
+            .then(() => {
+                logger.info("Test end.");
+                logger.info("SERVER_DATA: ", SERVER_DATA.requests);
+
+                should(SERVER_DATA.requests['report-version']).not.be.ok();
+                should(SERVER_DATA.requests['report-error']).be.ok();
+                should(SERVER_DATA.requests['report-counters']).be.ok();
+                should(SERVER_DATA.requests['report-metrics']).be.ok();
+            })
+    })
+    .timeout(10 * 1000);
+
 });

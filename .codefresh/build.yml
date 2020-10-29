@@ -74,6 +74,7 @@ steps:
           noCiCdAuthor: 'includes("${{CF_COMMIT_MESSAGE}}", "Version Release") == false' 
           masterBranch: '"${{CF_BRANCH}}" == "master"'
     commands:
+      - echo '//registry.npmjs.org/:_authToken=${NPM_TOKEN}' > ~/.npmrc
       - git config --global user.email "cicd@kubevious.io"
       - git config --global user.name "Kubevious CI/CD"
       - 'npm version patch -m "Version Release v%s"'

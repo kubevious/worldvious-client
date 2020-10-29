@@ -18,6 +18,7 @@ interface JobConfig
 {
     enabled: boolean
     delaySeconds: number
+    disableEnvName: string
     overrideEnvName: string
     shouldStartImmediately: boolean
 }
@@ -82,6 +83,7 @@ export class WorldviousClient
         this.jobConfigs[ReportActions.VersionCheck] = {
             delaySeconds: 60 * 60,
             enabled: true,
+            disableEnvName: 'WORLDVIOUS_VERSION_CHECK_DISABLE',
             overrideEnvName: 'WORLDVIOUS_VERSION_CHECK_TIMEOUT',
             shouldStartImmediately: true
         }
@@ -89,6 +91,7 @@ export class WorldviousClient
         this.jobConfigs[ReportActions.ReportError] = {
             delaySeconds: 1 * 60,
             enabled: true,
+            disableEnvName: 'WORLDVIOUS_ERROR_REPORT_DISABLE',
             overrideEnvName: 'WORLDVIOUS_ERROR_REPORT_TIMEOUT',
             shouldStartImmediately: false
         }
@@ -96,6 +99,7 @@ export class WorldviousClient
         this.jobConfigs[ReportActions.ReportCounters] = {
             delaySeconds: 60 * 60,
             enabled: true,
+            disableEnvName: 'WORLDVIOUS_COUNTERS_REPORT_DISABLE',
             overrideEnvName: 'WORLDVIOUS_COUNTERS_REPORT_TIMEOUT',
             shouldStartImmediately: false
         }
@@ -103,6 +107,7 @@ export class WorldviousClient
         this.jobConfigs[ReportActions.ReportMetrics] = {
             delaySeconds: 60 * 60,
             enabled: true,
+            disableEnvName: 'WORLDVIOUS_METRICS_REPORT_DISABLE',
             overrideEnvName: 'WORLDVIOUS_METRICS_REPORT_TIMEOUT',
             shouldStartImmediately: false
         }
@@ -121,11 +126,22 @@ export class WorldviousClient
             }
         }
 
-        if (!this.enabled) {
-            for(let config of _.values(this.jobConfigs))
-            {
+        for(let config of _.values(this.jobConfigs))
+        {
+            if (!this.enabled) {
                 config.enabled = false;
+            } else {
+                if (process.env[config.disableEnvName])
+                {
+                    config.enabled = false;
+                }
             }
+        }
+        
+        for(let name of _.keys(this.jobConfigs))
+        {
+            const config = this.jobConfigs[name];
+            this.logger.info("Job: %s, Enabled: %s.", name, config.enabled);
         }
     }
 
