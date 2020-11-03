@@ -83,5 +83,4 @@ steps:
       - git status
       - git push 
       - git push --tags
-      - npm whoami
       - npm publish
