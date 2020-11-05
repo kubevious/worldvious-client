@@ -41,6 +41,20 @@ enum ReportActions {
     ReportMetrics = 'report-metrics',
 }
 
+export interface FeedbackQuestion
+{
+    id: string;
+    kind: string;
+    text: string;
+    options?: string;
+}
+
+export interface FeedbackRequest
+{
+    id: string;
+    questions: FeedbackQuestion[];
+}
+
 export interface VersionInfo
 {
     newVersionPresent: boolean;
@@ -49,6 +63,7 @@ export interface VersionInfo
     changes?: string[];
     features?: string[];
     url?: string;
+    feedbackRequest?: FeedbackRequest;
 }
 
 export type NewVersionCallback = (versionInfo: VersionInfo) => Resolvable<any>;
@@ -204,6 +219,15 @@ export class WorldviousClient
     acceptMetrics(value: any)
     {
         this.metrics = value;
+    }
+
+    reportFeedback(id: string, answers: any)
+    {
+        const data : Record<string, any> = {}
+        data.id = this.id;
+        data.feedbackId = id;
+        data.answers = answers;
+        return this._request('report/feedback', data);
     }
 
     private _trigger(cb : (versionInfo: VersionInfo) => Resolvable<any>)
