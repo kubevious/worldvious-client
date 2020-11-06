@@ -41,6 +41,22 @@ enum ReportActions {
     ReportMetrics = 'report-metrics',
 }
 
+enum NotificationKind {
+    NewVersion = 'new-version',
+    FeedbackRequest = 'feedback-request',
+    Message = 'message'
+}
+
+export interface VersionInfo
+{
+    kind: string;
+    name: string;
+    version: string;
+    changes: string[];
+    features: string[];
+    url: string;
+}
+
 export interface FeedbackQuestion
 {
     id: string;
@@ -51,22 +67,19 @@ export interface FeedbackQuestion
 
 export interface FeedbackRequest
 {
+    kind: string;
     id: string;
     questions: FeedbackQuestion[];
 }
 
-export interface VersionInfo
+export type NotificationItem = VersionInfo | FeedbackRequest;
+
+export interface VersionInfoResult
 {
-    newVersionPresent: boolean;
-    name?: string;
-    version?: string;
-    changes?: string[];
-    features?: string[];
-    url?: string;
-    feedbackRequest?: FeedbackRequest;
+    notifications: NotificationItem[];
 }
 
-export type NewVersionCallback = (versionInfo: VersionInfo) => Resolvable<any>;
+export type NotificationsChangeCallback = (notifications: NotificationItem[]) => Resolvable<any>;
 
 export class WorldviousClient
 {
@@ -86,8 +99,8 @@ export class WorldviousClient
     private counters = [];
     private metrics = [];
     private errors : Record<string, ErrorInfo> = {};
-    private _versionInfo: VersionInfo = { newVersionPresent: false };
-    private _versionChangeListeners : NewVersionCallback[] = [];
+    private _notificationItems: NotificationItem[] = [];
+    private _notificationsChangeListeners : NotificationsChangeCallback[] = [];
 
     constructor(logger : ILogger, name: string, version: string)
     {
@@ -160,13 +173,13 @@ export class WorldviousClient
         }
     }
 
-    get versionInfo() : VersionInfo {
-        return this._versionInfo;
+    get notificationItems() : NotificationItem[] {
+        return this._notificationItems;
     }
 
-    onVersionChanged(cb : (versionInfo: VersionInfo) => Resolvable<any>)
+    onNotificationsChanged(cb : NotificationsChangeCallback)
     {
-        this._versionChangeListeners.push(cb);
+        this._notificationsChangeListeners.push(cb);
         this._trigger(cb);
     }
 
@@ -230,11 +243,11 @@ export class WorldviousClient
         return this._request('report/feedback', data);
     }
 
-    private _trigger(cb : (versionInfo: VersionInfo) => Resolvable<any>)
+    private _trigger(cb : NotificationsChangeCallback)
     {
         try
         {
-            const res = cb(this.versionInfo);
+            const res = cb(this._notificationItems);
             BasePromise.resolve(res)
                 .catch(reason => {
                     this.logger.error("ERROR: ", reason);
@@ -274,22 +287,27 @@ export class WorldviousClient
         data.version = this.version;
         return this._request('report/version', data)
             .then(result => {
-                const versionInfo = <VersionInfo> result;
-                this._activateNewVersionInfo(versionInfo);
+                const versionInfoResult = <VersionInfoResult> result;
+                this._activateNewVersionInfo(versionInfoResult);
             });
     }
 
-    private _activateNewVersionInfo(versionInfo : VersionInfo)
+    private _activateNewVersionInfo(versionInfoResult : VersionInfoResult)
     {
-        if (versionInfo.newVersionPresent) {
-            this.logger.info("New version (%s %s) is available. Download from: %s.",
-                versionInfo.name,
-                versionInfo.version,
-                versionInfo.url);
+        for(let item of versionInfoResult.notifications)
+        {
+            if (item.kind == NotificationKind.NewVersion)
+            {
+                const newVersionRequest = <VersionInfo> item;
+                this.logger.info("New version (%s %s) is available. Download from: %s.",
+                    newVersionRequest.name,
+                    newVersionRequest.version,
+                    newVersionRequest.url);
+            }
         }
 
-        this._versionInfo = versionInfo;
-        for(let cb of this._versionChangeListeners)
+        this._notificationItems = versionInfoResult.notifications;
+        for(let cb of this._notificationsChangeListeners)
         {
             this._trigger(cb);
         }

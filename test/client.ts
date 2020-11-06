@@ -18,13 +18,15 @@ interface ServerMockData {
     requestCounter: Record<string, number>;
     server?: any;
     shouldRequestNewVersion: boolean;
+    shouldRequestFeedback: boolean;
 };
 
 const SERVER_DATA : ServerMockData = {
     requests: {},
     requestCounter: {},
     server: null,
-    shouldRequestNewVersion: false
+    shouldRequestNewVersion: false,
+    shouldRequestFeedback: false
 };
 
 function registerRequest(name: string, body: any)
@@ -46,6 +48,8 @@ describe('worldvious', () => {
     beforeEach(() => {
         process.env.WORLDVIOUS_URL=`http://localhost:${TEST_SERVER_PORT}/api/v1/oss`
         process.env.WORLDVIOUS_ID='123e4567-e89b-12d3-a456-426614174000'
+        SERVER_DATA.shouldRequestNewVersion = false;
+        SERVER_DATA.shouldRequestFeedback = false;
         delete process.env.WORLDVIOUS_VERSION_CHECK_TIMEOUT;
         delete process.env.WORLDVIOUS_COUNTERS_REPORT_TIMEOUT;
         delete process.env.WORLDVIOUS_METRICS_REPORT_TIMEOUT;
@@ -65,32 +69,49 @@ describe('worldvious', () => {
             serverLogger.info("REPORT VERSION, body: ", req.body );
             registerRequest('report-version', req.body);
 
-            let data;
+            let notifications : any[] = [];
+            
             if (SERVER_DATA.shouldRequestNewVersion)
             {
-                data = {
-                    "newVersionPresent": true,
-                    "name": "Kubevious",
-                    "version": "v1.2.3",
-                    "url": "https://github.com/kubevious/kubevious",
-                    "changes": [
-                        "change-1",
-                        "change-2",
-                        "change-3",
-                    ],
-                    "features": [
-                        "feature-1",
-                        "feature-2",
-                        "feature-3",
-                    ]
-                };
+                notifications.push(
+                    {
+                        "kind": "new-version",
+                        "name": "Kubevious",
+                        "version": "v1.2.3",
+                        "url": "https://github.com/kubevious/kubevious",
+                        "changes": [
+                            "change-1",
+                            "change-2",
+                            "change-3",
+                        ],
+                        "features": [
+                            "feature-1",
+                            "feature-2",
+                            "feature-3",
+                        ]
+                    });
             }
-            else
+
+            if (SERVER_DATA.shouldRequestFeedback)
             {
-                data = {
-                    "newVersionPresent": false
-                };
+                notifications.push(
+                    {
+                        "kind": "feedback-request",
+                        "id": "7654e321-e89b-12d3-a456-426614174000",
+                        "questions": [
+                            {
+                                "id": "ease-of-use",
+                                "kind": "rate",
+                                "text": "How do you like the easy of use?"
+                            }
+                        ]
+                    });
             }
+
+            let data = {
+                notifications: notifications
+            };
+
             res.json(data);
         });
 
@@ -149,12 +170,13 @@ describe('worldvious', () => {
     });
 
 
-    it('check_version_1', () => {
+    it('check_version_new_version_available', () => {
         SERVER_DATA.shouldRequestNewVersion = true;
+
         client = new WorldviousClient(logger, "kubevious", 'v1.2.3');
-        let version : any;
-        client.onVersionChanged((x) => {
-            version = x;
+        let notifications : any[];
+        client.onNotificationsChanged((x) => {
+            notifications = x;
         })
         return Promise.resolve()
             .then(() => client.init())
@@ -164,26 +186,25 @@ describe('worldvious', () => {
                     process: "kubevious",
                     version: "v1.2.3"
                 })
-
-                return Promise.timeout(100);
             })
             .then(() => {
+                let version : any = _.find(notifications, x => x.kind == 'new-version');
                 should(version).be.ok();
-                should(version.newVersionPresent).be.true();
                 should(version.name).be.equal("Kubevious");
                 should(version.version).be.equal("v1.2.3");
                 should(version.url).be.equal("https://github.com/kubevious/kubevious");
                 should(version.changes).be.an.Array();
-                should(version.features).be.an.Array();
+                should(version.features).be.an.Array()
+                
+                should(notifications.length).equal(1);
             })
     });
 
-    it('check_version_2', () => {
-        SERVER_DATA.shouldRequestNewVersion = false;
+    it('check_version_no_version_available', () => {
         client = new WorldviousClient(logger, "parser", 'v7.8.9');
-        let version : any;
-        client.onVersionChanged((x) => {
-            version = x;
+        let notifications : any[];
+        client.onNotificationsChanged((x) => {
+            notifications = x;
         })
         return Promise.resolve()
             .then(() => client.init())
@@ -196,10 +217,37 @@ describe('worldvious', () => {
                 return Promise.timeout(100);
             })
             .then(() => {
-                should(version).be.ok();
-                should(version.newVersionPresent).be.false();
+                let version : any = _.find(notifications, x => x.kind == 'new-version');
+                should(version).not.be.ok();
+                should(notifications.length).equal(0);
             })
     });
+
+
+    it('check_version_feedback_requested', () => {
+        SERVER_DATA.shouldRequestFeedback = true;
+
+        client = new WorldviousClient(logger, "kubevious", 'v1.2.3');
+        let notifications : any[];
+        client.onNotificationsChanged((x) => {
+            notifications = x;
+        })
+        return Promise.resolve()
+            .then(() => client.init())
+            .then(() => {
+                should(SERVER_DATA.requests['report-version']).be.eql({
+                    id: "123e4567-e89b-12d3-a456-426614174000",
+                    process: "kubevious",
+                    version: "v1.2.3"
+                })
+            })
+            .then(() => {
+                let feedback : any = _.find(notifications, x => x.kind == 'feedback-request');
+                should(feedback).be.ok();
+                should(notifications.length).equal(1);
+            })
+    });
+
 
     it('check_version_timeout', () => {
         process.env.WORLDVIOUS_VERSION_CHECK_TIMEOUT = '1';
