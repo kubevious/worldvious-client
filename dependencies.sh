@@ -5,6 +5,7 @@ REPO_DEPENDENCIES=(
     "the-logger"
     "the-promise"
     "@kubevious/http-client"
+    "@kubevious/ui-middleware"
 )
 
 FORCE_RESOLVE_DEPENDENCIES=(
@@ -12,4 +13,5 @@ FORCE_RESOLVE_DEPENDENCIES=(
     "the-logger"
     "the-promise"
     "@kubevious/http-client"
+    "@kubevious/ui-middleware"
 )

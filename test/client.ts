@@ -8,6 +8,12 @@ const loggerOptions = new LoggerOptions().enableFile(false).pretty(true);
 const logger = setupLogger('test', loggerOptions);
 const serverLogger = setupLogger('SERVER', loggerOptions);
 
+import { WorldviousVersionInfoResult,
+    WorldviousNotificationKind,
+    WorldviousNewVersionInfo,
+    WorldviousFeedbackSubmitData
+   } from '@kubevious/ui-middleware/dist/services/worldvious';
+
 import dotenv from 'dotenv';
 dotenv.config();
 
@@ -174,7 +180,7 @@ describe('worldvious', () => {
         SERVER_DATA.shouldRequestNewVersion = true;
 
         client = new WorldviousClient(logger, "kubevious", 'v1.2.3');
-        let notifications : any[];
+        let notifications : WorldviousVersionInfoResult | null = null;
         client.onNotificationsChanged((x) => {
             notifications = x;
         })
@@ -188,21 +194,22 @@ describe('worldvious', () => {
                 })
             })
             .then(() => {
-                const version = _.find(notifications, x => x.kind == 'new-version');
-                should(version).be.ok();
+                const item = _.find(notifications!.notifications, x => x.kind == 'new-version');
+                should(item).be.ok();
+                const version = item as WorldviousNewVersionInfo;
                 should(version.name).be.equal("Kubevious");
                 should(version.version).be.equal("v1.2.3");
                 should(version.url).be.equal("https://github.com/kubevious/kubevious");
                 should(version.changes).be.an.Array();
                 should(version.features).be.an.Array()
                 
-                should(notifications.length).equal(1);
+                should(notifications!.notifications.length).equal(1);
             })
     });
 
     it('check_version_no_version_available', () => {
         client = new WorldviousClient(logger, "parser", 'v7.8.9');
-        let notifications : any[] = [];
+        let notifications : WorldviousVersionInfoResult | null = null;
         client.onNotificationsChanged((x) => {
             notifications = x;
         })
@@ -217,9 +224,9 @@ describe('worldvious', () => {
                 return Promise.timeout(100);
             })
             .then(() => {
-                const version = _.find(notifications, x => x.kind == 'new-version');
+                const version = _.find(notifications!.notifications, x => x.kind == 'new-version');
                 should(version).not.be.ok();
-                should(notifications.length).equal(0);
+                should(notifications!.notifications.length).equal(0);
             })
     });
 
@@ -228,7 +235,7 @@ describe('worldvious', () => {
         SERVER_DATA.shouldRequestFeedback = true;
 
         client = new WorldviousClient(logger, "kubevious", 'v1.2.3');
-        let notifications : any[];
+        let notifications : WorldviousVersionInfoResult | null = null;
         client.onNotificationsChanged((x) => {
             notifications = x;
         })
@@ -242,9 +249,9 @@ describe('worldvious', () => {
                 })
             })
             .then(() => {
-                const feedback = _.find(notifications, x => x.kind == 'feedback-request');
+                const feedback = _.find(notifications!.notifications, x => x.kind == 'feedback-request');
                 should(feedback).be.ok();
-                should(notifications.length).equal(1);
+                should(notifications!.notifications.length).equal(1);
             })
     });
 

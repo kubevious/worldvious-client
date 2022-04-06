@@ -3,6 +3,11 @@ import { Promise, Resolvable } from 'the-promise';
 import _ from 'the-lodash';
 
 import { HttpClient  } from '@kubevious/http-client';
+import { WorldviousVersionInfoResult,
+         WorldviousNotificationKind,
+         WorldviousNewVersionInfo,
+         WorldviousFeedbackSubmitData
+        } from '@kubevious/ui-middleware/dist/services/worldvious';
 
 import dotenv from 'dotenv';
 dotenv.config();
@@ -42,45 +47,8 @@ enum ReportActions {
     ReportMetrics = 'report-metrics',
 }
 
-enum NotificationKind {
-    NewVersion = 'new-version',
-    FeedbackRequest = 'feedback-request',
-    Message = 'message'
-}
 
-export interface VersionInfo
-{
-    kind: string;
-    name: string;
-    version: string;
-    changes: string[];
-    features: string[];
-    url: string;
-}
-
-export interface FeedbackQuestion
-{
-    id: string;
-    kind: string;
-    text: string;
-    options?: string;
-}
-
-export interface FeedbackRequest
-{
-    kind: string;
-    id: string;
-    questions: FeedbackQuestion[];
-}
-
-export type NotificationItem = VersionInfo | FeedbackRequest;
-
-export interface VersionInfoResult
-{
-    notifications: NotificationItem[];
-}
-
-export type NotificationsChangeCallback = (notifications: NotificationItem[]) => Resolvable<any>;
+export type NotificationsChangeCallback = (result: WorldviousVersionInfoResult) => Resolvable<any>;
 
 export class WorldviousClient
 {
@@ -100,7 +68,9 @@ export class WorldviousClient
     private counters = [];
     private metrics = [];
     private errors : Record<string, ErrorInfo> = {};
-    private _notificationItems: NotificationItem[] = [];
+    private _versionCheckResult: WorldviousVersionInfoResult = {
+        notifications: []
+    };
     private _notificationsChangeListeners : NotificationsChangeCallback[] = [];
 
     constructor(logger : ILogger, name: string, version: string)
@@ -174,8 +144,8 @@ export class WorldviousClient
         }
     }
 
-    get notificationItems() : NotificationItem[] {
-        return this._notificationItems;
+    get versionCheckResult() : WorldviousVersionInfoResult {
+        return this._versionCheckResult;
     }
 
     onNotificationsChanged(cb : NotificationsChangeCallback)
@@ -235,20 +205,24 @@ export class WorldviousClient
         this.metrics = value;
     }
 
-    reportFeedback(id: string, answers: any)
+    reportFeedback(data: WorldviousFeedbackSubmitData)
     {
-        const data : Record<string, any> = {}
-        data.id = this.id;
-        data.feedbackId = id;
-        data.answers = answers;
-        return this._request('report/feedback', data);
+        if (!this.id) {
+            return
+        }
+        const body  = {
+            id: this.id,
+            feedbackId: data.feedbackId,
+            answers: data.answers
+        }
+        return this._request('report/feedback', body);
     }
 
     private _trigger(cb : NotificationsChangeCallback)
     {
         try
         {
-            const res = cb(this._notificationItems);
+            const res = cb(this._versionCheckResult);
             Promise.resolve(res)
                 .catch(reason => {
                     this.logger.error("ERROR: ", reason);
@@ -286,19 +260,19 @@ export class WorldviousClient
     {
         const data = this._makeNewData();
         data.version = this.version;
-        return this._request<VersionInfoResult>('report/version', data)
+        return this._request<WorldviousVersionInfoResult>('report/version', data)
             .then(result => {
                 this._activateNewVersionInfo(result);
             });
     }
 
-    private _activateNewVersionInfo(versionInfoResult : VersionInfoResult)
+    private _activateNewVersionInfo(result : WorldviousVersionInfoResult)
     {
-        for(const item of versionInfoResult.notifications)
+        for(const item of result.notifications)
         {
-            if (item.kind == NotificationKind.NewVersion)
+            if (item.kind == WorldviousNotificationKind.newVersion)
             {
-                const newVersionRequest = <VersionInfo> item;
+                const newVersionRequest = <WorldviousNewVersionInfo> item;
                 this.logger.info("New version (%s %s) is available. Download from: %s.",
                     newVersionRequest.name,
                     newVersionRequest.version,
@@ -306,7 +280,7 @@ export class WorldviousClient
             }
         }
 
-        this._notificationItems = versionInfoResult.notifications;
+        this._versionCheckResult = result;
         for(const cb of this._notificationsChangeListeners)
         {
             this._trigger(cb);
