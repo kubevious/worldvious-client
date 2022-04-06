@@ -59,9 +59,9 @@ describe('worldvious', () => {
         delete process.env.WORLDVIOUS_COUNTERS_REPORT_DISABLE;
         delete process.env.WORLDVIOUS_METRICS_REPORT_DISABLE;
 
-        var express = require("express");
-        var bodyParser = require('body-parser');
-        var app = express();
+        const express = require("express");
+        const bodyParser = require('body-parser');
+        const app = express();
 
         app.use(bodyParser.json())
 
@@ -69,7 +69,7 @@ describe('worldvious', () => {
             serverLogger.info("REPORT VERSION, body: ", req.body );
             registerRequest('report-version', req.body);
 
-            let notifications : any[] = [];
+            const notifications : any[] = [];
             
             if (SERVER_DATA.shouldRequestNewVersion)
             {
@@ -108,7 +108,7 @@ describe('worldvious', () => {
                     });
             }
 
-            let data = {
+            const data = {
                 notifications: notifications
             };
 
@@ -188,7 +188,7 @@ describe('worldvious', () => {
                 })
             })
             .then(() => {
-                let version : any = _.find(notifications, x => x.kind == 'new-version');
+                const version = _.find(notifications, x => x.kind == 'new-version');
                 should(version).be.ok();
                 should(version.name).be.equal("Kubevious");
                 should(version.version).be.equal("v1.2.3");
@@ -202,7 +202,7 @@ describe('worldvious', () => {
 
     it('check_version_no_version_available', () => {
         client = new WorldviousClient(logger, "parser", 'v7.8.9');
-        let notifications : any[];
+        let notifications : any[] = [];
         client.onNotificationsChanged((x) => {
             notifications = x;
         })
@@ -217,7 +217,7 @@ describe('worldvious', () => {
                 return Promise.timeout(100);
             })
             .then(() => {
-                let version : any = _.find(notifications, x => x.kind == 'new-version');
+                const version = _.find(notifications, x => x.kind == 'new-version');
                 should(version).not.be.ok();
                 should(notifications.length).equal(0);
             })
@@ -242,7 +242,7 @@ describe('worldvious', () => {
                 })
             })
             .then(() => {
-                let feedback : any = _.find(notifications, x => x.kind == 'feedback-request');
+                const feedback = _.find(notifications, x => x.kind == 'feedback-request');
                 should(feedback).be.ok();
                 should(notifications.length).equal(1);
             })

@@ -1,7 +1,8 @@
 import { ILogger } from 'the-logger';
-import { Promise, Resolvable, BasePromise } from 'the-promise';
+import { Promise, Resolvable } from 'the-promise';
 import _ from 'the-lodash';
-import axios from 'axios';
+
+import { HttpClient  } from '@kubevious/http-client';
 
 import dotenv from 'dotenv';
 dotenv.config();
@@ -154,7 +155,7 @@ export class WorldviousClient
             }
         }
 
-        for(let config of _.values(this.jobConfigs))
+        for(const config of _.values(this.jobConfigs))
         {
             if (!this.enabled) {
                 config.enabled = false;
@@ -166,7 +167,7 @@ export class WorldviousClient
             }
         }
         
-        for(let name of _.keys(this.jobConfigs))
+        for(const name of _.keys(this.jobConfigs))
         {
             const config = this.jobConfigs[name];
             this.logger.info("Job: %s, Enabled: %s.", name, config.enabled);
@@ -199,7 +200,7 @@ export class WorldviousClient
     {
         this.logger.info("Closing...")
         this.closed = true;
-        for(let timer of _.values(this.timers))
+        for(const timer of _.values(this.timers))
         {
             clearTimeout(timer);
         }
@@ -248,7 +249,7 @@ export class WorldviousClient
         try
         {
             const res = cb(this._notificationItems);
-            BasePromise.resolve(res)
+            Promise.resolve(res)
                 .catch(reason => {
                     this.logger.error("ERROR: ", reason);
                 })
@@ -285,16 +286,15 @@ export class WorldviousClient
     {
         const data = this._makeNewData();
         data.version = this.version;
-        return this._request('report/version', data)
+        return this._request<VersionInfoResult>('report/version', data)
             .then(result => {
-                const versionInfoResult = <VersionInfoResult> result;
-                this._activateNewVersionInfo(versionInfoResult);
+                this._activateNewVersionInfo(result);
             });
     }
 
     private _activateNewVersionInfo(versionInfoResult : VersionInfoResult)
     {
-        for(let item of versionInfoResult.notifications)
+        for(const item of versionInfoResult.notifications)
         {
             if (item.kind == NotificationKind.NewVersion)
             {
@@ -307,7 +307,7 @@ export class WorldviousClient
         }
 
         this._notificationItems = versionInfoResult.notifications;
-        for(let cb of this._notificationsChangeListeners)
+        for(const cb of this._notificationsChangeListeners)
         {
             this._trigger(cb);
         }
@@ -335,7 +335,7 @@ export class WorldviousClient
 
         const payloads : any[] = [];
 
-        for(let errorInfo of _.values(this.errors))
+        for(const errorInfo of _.values(this.errors))
         {
             const data = this._makeNewData();
             data.version = this.version;
@@ -346,8 +346,8 @@ export class WorldviousClient
         this.errors = {};
 
         return Promise.serial(payloads, data => {
-                return this._request('report/error', data);
-            });
+            return this._request('report/error', data);
+        });
     }
 
     private _getErrorString(error : any)
@@ -465,22 +465,22 @@ export class WorldviousClient
         }
     }
 
-    private _request(url: string, data: Record<string, any>) : Promise<any>
+    private _request<T = any>(url: string, data: Record<string, any>)
     {
         const fullUrl = `${process.env.WORLDVIOUS_URL}/${url}`;
 
         this.logger.silly("Requesting %s...", fullUrl, data);
-        return Promise.construct<any>((resolve, reject) => {
-            axios.post(fullUrl, data)
-                .then(result => {
-                    this.logger.silly("Done %s.", fullUrl, result.data);
-                    resolve(result.data)
-                })
-                .catch(reason => {
-                    this.logger.error("Failed %s. %s", fullUrl, reason.message);
-                    reject(reason);
-                });
-        })
+
+        const client = new HttpClient();
+        return client.post<T>(fullUrl, {}, data)
+            .then(result => {
+                this.logger.silly("Done %s.", fullUrl, result.data);
+                return result.data;
+            })
+            .catch(reason => {
+                this.logger.error("Failed %s. %s", fullUrl, reason.message);
+                throw reason;
+            });
     }
 
     private _makeNewData() : Record<string, any>
