@@ -212,7 +212,7 @@ export class WorldviousClient
         }
         const body  = {
             id: this.id,
-            feedbackId: data.feedbackId,
+            feedbackId: data.id,
             answers: data.answers
         }
         return this._request('report/feedback', body);
