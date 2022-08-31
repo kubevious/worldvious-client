@@ -18,7 +18,7 @@
   "license": "Apache-2.0",
   "dependencies": {
     "@kubevious/http-client": "^1.0.19",
-    "@kubevious/ui-middleware": "^1.0.52",
+    "@kubevious/ui-middleware": "^1.0.75",
     "dotenv": "^8.2.0",
     "the-lodash": "^2.0.9",
     "the-logger": "^2.0.14",
@@ -43,6 +43,6 @@
     "the-logger": "^2.0.14",
     "the-promise": "^2.0.13",
     "@kubevious/http-client": "^1.0.19",
-    "@kubevious/ui-middleware": "^1.0.52"
+    "@kubevious/ui-middleware": "^1.0.75"
   }
 }

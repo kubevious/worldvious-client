@@ -222,8 +222,8 @@ export class WorldviousClient
     {
         try
         {
-            const res = cb(this._versionCheckResult);
-            Promise.resolve(res)
+            Promise.resolve(null)
+                .then(() => cb(this._versionCheckResult))
                 .catch(reason => {
                     this.logger.error("ERROR: ", reason);
                 })
@@ -360,18 +360,26 @@ export class WorldviousClient
             }
             this.jobRuntime[name].isRunning = true;
             this.logger.info("Running %s...", name);
-            const res = job.cb();
-            return Promise.resolve(res)
-                .then(() => {
-                    this.logger.info("Completed %s", name);
-                })
-                .catch(reason => {
-                    this.logger.error("%s failed. reason: %s",name, reason.message);
-                })
-                .then(() => {
-                    this.jobRuntime[name].isRunning = false;
-                    this._runJob(name, false);
-                })
+            try
+            {
+                const res = job.cb();
+                return Promise.resolve(res)
+                    .then(() => {
+                        this.logger.info("Completed %s", name);
+                    })
+                    .catch(reason => {
+                        this.logger.error("%s failed. reason: %s",name, reason.message);
+                    })
+                    .then(() => {
+                        this.jobRuntime[name].isRunning = false;
+                        this._runJob(name, false);
+                    })
+            }
+            catch(reason)
+            {
+                this.logger.error("%s failed. reason: ",name, reason);
+                return Promise.resolve();
+            }
         };
 
         if (executeNow)

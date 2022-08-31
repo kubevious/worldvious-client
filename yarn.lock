@@ -52,10 +52,10 @@
   resolved "https://registry.yarnpkg.com/@humanwhocodes/object-schema/-/object-schema-1.2.1.tgz#b520529ec21d8e5945a1851dfd1c32e94e39ff45"
   integrity sha512-ZnQMnLV4e7hDlUvw8H+U8ASL02SS2Gn6+9Ac3wGGLIe7+je2AeAOxPY+izIPJDfFDb7eDjev0Us8MO1iFRN8hA==
 
-"@kubevious/entity-meta@^1.0.56":
-  version "1.0.56"
-  resolved "https://registry.yarnpkg.com/@kubevious/entity-meta/-/entity-meta-1.0.56.tgz#e2460fee0d7ae931b1da911725e9f0aa556a9e48"
-  integrity sha512-KW9dhxn6bEGK9z4/426i8Un+/uPc1HLUoZA61okj26s+BKnB9uOte2PPGdl0tu/I0WIx2zZ9zMj21NywdfH09g==
+"@kubevious/entity-meta@^1.0.69":
+  version "1.0.71"
+  resolved "https://registry.yarnpkg.com/@kubevious/entity-meta/-/entity-meta-1.0.71.tgz#6f87acba188878d3a9ec641722cb85fd16aa3579"
+  integrity sha512-762pLt0TBErebtiiKWPIqtZ4i+lSv0VdayfKz/ofba8hZ3l+P4maYUGgFF0EyicgFMwJwY0AxgMIVLy980x3Hw==
   dependencies:
     the-lodash "^2.0.9"
 
@@ -69,12 +69,13 @@
     the-promise "^2.0.12"
     uuid "^8.3.2"
 
-"@kubevious/ui-middleware@^1.0.52":
-  version "1.0.52"
-  resolved "https://registry.yarnpkg.com/@kubevious/ui-middleware/-/ui-middleware-1.0.52.tgz#5fbda8396ca7fb4891a3009db3611ea0aeec5e12"
-  integrity sha512-8lL/hkogbM9/4K+Evtk2lQVSQEwlDaucjUAaGBaHk0z03u/cvH/pQRRa8VcvXLlqn2ab8ZAXgfQigCsd2c76Jg==
+"@kubevious/ui-middleware@^1.0.75":
+  version "1.0.75"
+  resolved "https://registry.yarnpkg.com/@kubevious/ui-middleware/-/ui-middleware-1.0.75.tgz#12e1d2ed1fb6f5e0a67e8747ca2a39d4c3e7f8e1"
+  integrity sha512-fwS88E4+7Mg4z7hHPjymPUOXxFneZgTDVvmU8YwiRV85YyFGEctjC5OVJmeHqAPmZFHRu3bt/ZeXde7D7bP13A==
   dependencies:
-    "@kubevious/entity-meta" "^1.0.56"
+    "@kubevious/entity-meta" "^1.0.69"
+    "@kubevious/http-client" "^1.0.19"
     the-promise "^2.0.13"
 
 "@types/bluebird@3.5.35":
