@@ -2,7 +2,6 @@ import 'mocha';
 import should = require('should');
 
 import _ from 'the-lodash';
-import { Promise } from 'the-promise';
 import { setupLogger, LoggerOptions } from 'the-logger';
 const loggerOptions = new LoggerOptions().enableFile(false).pretty(true);
 const logger = setupLogger('test', loggerOptions);
@@ -46,6 +45,7 @@ function registerRequest(name: string, body: any)
 }
 
 import { WorldviousClient } from '../src';
+import { MyPromise } from 'the-promise';
 
 let client: WorldviousClient;
 
@@ -145,13 +145,13 @@ describe('worldvious', () => {
         
         SERVER_DATA.requests = {};
          
-        return Promise.construct((resolve, reject) => {
+        return MyPromise.construct((resolve, reject) => {
             SERVER_DATA.server = app.listen(TEST_SERVER_PORT, () => {
                 console.log(`Server running on port ${TEST_SERVER_PORT}`);
                 resolve();
             });
         })
-        // .then(() => Promise.timeout(1000))
+        // .then(() => MyPromise.delay(1000))
     });
 
     afterEach(() => {
@@ -221,7 +221,7 @@ describe('worldvious', () => {
                     process: "parser",
                     version: "v7.8.9"
                 })
-                return Promise.timeout(100);
+                return MyPromise.delay(100);
             })
             .then(() => {
                 const version = _.find(notifications!.notifications, x => x.kind == 'new-version');
@@ -261,7 +261,7 @@ describe('worldvious', () => {
         client = new WorldviousClient(logger, "parser", 'v7.8.9');
         return Promise.resolve()
             .then(() => client.init())
-            .then(() => Promise.timeout(5500))
+            .then(() => MyPromise.delay(5500))
             .then(() => {
                 logger.info("Test end.");
                 should(SERVER_DATA.requestCounter['report-version']).be.equal(6);
@@ -285,7 +285,7 @@ describe('worldvious', () => {
                 }
                 
             })
-            .then(() => Promise.timeout(100))
+            .then(() => MyPromise.delay(100))
             .then(() => {
                 should(SERVER_DATA.requestCounter['report-error']).be.equal(1);
 
@@ -317,7 +317,7 @@ describe('worldvious', () => {
                     }
                 }
             })
-            .then(() => Promise.timeout(100))
+            .then(() => MyPromise.delay(100))
             .then(() => {
                 should(SERVER_DATA.requestCounter['report-error']).be.equal(1);
 
@@ -329,7 +329,7 @@ describe('worldvious', () => {
                 should(response.error).be.a.String();
                 should((<string>response.error).includes("Something bad happened"))
             })
-            .then(() => Promise.timeout(3000))
+            .then(() => MyPromise.delay(3000))
             .then(() => {
                 should(SERVER_DATA.requestCounter['report-error']).be.equal(2);
 
@@ -355,7 +355,7 @@ describe('worldvious', () => {
                     }
                 }
             })
-            .then(() => Promise.timeout(100))
+            .then(() => MyPromise.delay(100))
             .then(() => {
                 should(SERVER_DATA.requestCounter['report-error']).be.equal(3);
 
@@ -364,7 +364,7 @@ describe('worldvious', () => {
                 should((<string>response.error).includes("One More Error"))
 
             })
-            .then(() => Promise.timeout(3000))
+            .then(() => MyPromise.delay(3000))
             .then(() => {
                 should(SERVER_DATA.requestCounter['report-error']).be.equal(4);
 
@@ -390,7 +390,7 @@ describe('worldvious', () => {
                     foo1: 'bar1'
                 });
             })
-            .then(() => Promise.timeout(6500))
+            .then(() => MyPromise.delay(6500))
             .then(() => {
                 logger.info("Test end.");
                 should(SERVER_DATA.requestCounter['report-counters']).be.equal(3);
@@ -418,7 +418,7 @@ describe('worldvious', () => {
                     foo2: 'bar2'
                 });
             })
-            .then(() => Promise.timeout(6500))
+            .then(() => MyPromise.delay(6500))
             .then(() => {
                 logger.info("Test end.");
                 should(SERVER_DATA.requestCounter['report-metrics']).be.equal(3);
@@ -462,7 +462,7 @@ describe('worldvious', () => {
                     client.acceptError(reason);
                 }
             })
-            .then(() => Promise.timeout(3000))
+            .then(() => MyPromise.delay(3000))
             .then(() => {
                 logger.info("Test end.");
                 logger.info("SERVER_DATA: ", SERVER_DATA.requests);
@@ -501,7 +501,7 @@ describe('worldvious', () => {
                     client.acceptError(reason);
                 }
             })
-            .then(() => Promise.timeout(3 * 1000))
+            .then(() => MyPromise.delay(3 * 1000))
             .then(() => {
                 logger.info("Test end.");
                 logger.info("SERVER_DATA: ", SERVER_DATA.requests);
@@ -541,7 +541,7 @@ describe('worldvious', () => {
                     client.acceptError(reason);
                 }
             })
-            .then(() => Promise.timeout(3 * 1000))
+            .then(() => MyPromise.delay(3 * 1000))
             .then(() => {
                 logger.info("Test end.");
                 logger.info("SERVER_DATA: ", SERVER_DATA.requests);
@@ -582,7 +582,7 @@ describe('worldvious', () => {
                     client.acceptError(reason);
                 }
             })
-            .then(() => Promise.timeout(3 * 1000))
+            .then(() => MyPromise.delay(3 * 1000))
             .then(() => {
                 logger.info("Test end.");
                 logger.info("SERVER_DATA: ", SERVER_DATA.requests);

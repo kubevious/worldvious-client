@@ -40,7 +40,7 @@ steps:
   prepare:
     title: Prepare Dependencies
     stage: build
-    image: 'kubevious/node-builder:14'
+    image: 'kubevious/node-builder:18'
     working_directory: "${{CICD_REPO_PATH}}"
     commands:
       - yarn install --frozen-lockfile
@@ -49,7 +49,7 @@ steps:
   compile:
     title: Compile
     stage: build
-    image: 'kubevious/node-builder:14'
+    image: 'kubevious/node-builder:18'
     working_directory: "${{CICD_REPO_PATH}}"
     commands:
       - npm run build
@@ -57,7 +57,7 @@ steps:
   run_unit_test:
     title: Run Unit Tests
     stage: test
-    image: 'kubevious/node-builder:14'
+    image: 'kubevious/node-builder:18'
     working_directory: "${{CICD_REPO_PATH}}"
     commands:
       - pwd
@@ -67,7 +67,7 @@ steps:
   publish:
     title: Publish
     stage: publish
-    image: 'kubevious/node-builder:14'
+    image: 'kubevious/node-builder:18'
     working_directory: "${{CICD_REPO_PATH}}"
     when: 
       condition: 

@@ -1,5 +1,5 @@
 import { ILogger } from 'the-logger';
-import { Promise, Resolvable } from 'the-promise';
+import { MyPromise, Resolvable } from 'the-promise';
 import _ from 'the-lodash';
 
 import { HttpClient  } from '@kubevious/http-client';
@@ -159,7 +159,7 @@ export class WorldviousClient
         return Promise.resolve()
             .then(() => this._schedule())
             .then(() => {
-                return Promise.serial(_.keys(this.jobConfigs), name => {
+                return MyPromise.serial(_.keys(this.jobConfigs), name => {
                     const config = this.jobConfigs[name];
                     return this._runJob(name, config.shouldStartImmediately);
                 })
@@ -319,7 +319,7 @@ export class WorldviousClient
         }
         this.errors = {};
 
-        return Promise.serial(payloads, data => {
+        return MyPromise.serial(payloads, data => {
             return this._request('report/error', data);
         });
     }
